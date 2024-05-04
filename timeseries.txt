@@ -1,0 +1,92 @@
+# Load necessary libraries
+library(ggplot2)
+library(lubridate)
+
+# Define dataframe
+df <- data.frame(
+  MONTH = c(6, 7, 10, 12, 1, 1, 2, 5, 6, 6, 9, 11, 12, 12, 12, 4, 7, 7, 9, 10, 10, 12),
+  YEAR = c(2017, 2017, 2017, 2017, 2018, 2018, 2018, 2018, 2018, 2018, 2018, 2018, 2018, 2018, 2018, 2019, 2019, 2019, 2019, 2019, 2019, 2019),
+  MILESTONE = c(
+    "Milestone 1", "Milestone 2", "Milestone 3", "Milestone 4", "Milestone 5",
+    "Milestone 6", "Milestone 7", "Milestone 8", "Milestone 9", "Milestone 10",
+    "Milestone 11", "Milestone 12", "Milestone 13", "Milestone 14", "Milestone 15",
+    "Milestone 16", "Milestone 17", "Milestone 18", "Milestone 19", "Milestone 20",
+    "Milestone 21", "Milestone 22"
+  ),
+  STATUS = c(
+    "Complete", "Complete", "Complete", "Complete", "Complete", "Complete", "Complete",
+    "Complete", "On Target", "On Target", "At Risk", "On Target", "On Target", "On Target",
+    "At Risk", "Critical", "On Target", "On Target", "On Target", "At Risk",
+    "On Target", "Critical"
+  )
+)
+
+# Create 'DATE' column
+df$DATE <- make_date(df$YEAR, df$MONTH)
+
+# Order dataframe by DATE
+df <- df[order(df$DATE), ]
+
+# Define status levels and colors
+status_levels <- c("Complete", "On Target", "At Risk", "Critical")
+status_colors <- c("#0070C0", "#00B050", "#FFC000", "#C00000")
+
+# Convert 'STATUS' to factor
+df$STATUS <- factor(df$STATUS, levels = status_levels, ordered = TRUE)
+
+# Merge dataframe with line positions
+positions <- c(0.5, -0.5, 1.0, -1.0, 1.5, -1.5)
+directions <- c(1, -1)
+line_pos <- data.frame(
+  DATE = unique(df$DATE),
+  position = rep(positions, length.out = length(unique(df$DATE))),
+  direction = rep(directions, length.out = length(unique(df$DATE)))
+)
+df <- merge(x = df, y = line_pos, by = "DATE", all = TRUE)
+df <- df[order(df$DATE, df$STATUS), ]
+
+# Calculate text position
+text_offset <- 0.05
+df$month_count <- ave(df$DATE == df$DATE, df$DATE, FUN = cumsum)
+df$text_position <- (df$month_count * text_offset * df$direction) + df$position
+
+# Define month and year dataframes
+month_buffer <- 2
+month_date_range <- seq(min(df$DATE) - months(month_buffer), max(df$DATE) + months(month_buffer), by = 'month')
+month_format <- format(month_date_range, '%b')
+month_df <- data.frame(month_date_range, month_format)
+
+year_date_range <- seq(min(df$DATE) - months(month_buffer), max(df$DATE) + months(month_buffer), by = 'year')
+year_date_range <- as.Date(
+  intersect(
+    ceiling_date(year_date_range, unit = "year"),
+    floor_date(year_date_range, unit = "year")
+  ), origin = "1970-01-01"
+)
+year_format <- format(year_date_range, '%Y')
+year_df <- data.frame(year_date_range, year_format)
+
+# Plot
+timeline_plot <- ggplot(df, aes(x = DATE, y = 0, col = STATUS, label = MILESTONE)) +
+  labs(col = "Milestones") +
+  scale_color_manual(values = status_colors, labels = status_levels, drop = FALSE) +
+  theme_classic() +
+  geom_hline(yintercept = 0, color = "black", size = 0.3) +
+  geom_segment(data = df[df$month_count == 1, ], aes(y = position, yend = 0, xend = DATE), color = 'black', size = 0.2) +
+  geom_point(aes(y = 0), size = 3) +
+  theme(
+    axis.line.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    legend.position = "bottom"
+  ) +
+  geom_text(data = month_df, aes(x = month_date_range, y = -0.1, label = month_format), size = 2.5, vjust = 0.5, color = 'black', angle = 90) +
+  geom_text(data = year_df, aes(x = year_date_range, y = -0.2, label = year_format, fontface = "bold"), size = 2.5, color = 'black') +
+  geom_text(aes(y = text_position, label = MILESTONE), size = 2.5)
+
+print(timeline_plot)
