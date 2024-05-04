@@ -1,0 +1,70 @@
+correlation:
+
+install.packages("Hmisc")
+install.packages("corrgram")
+install.packages("ggm")
+data("auto")
+cor(auto$MPG, auto$Price)
+cor.test(auto$MPG, auto$Price)
+cor.test(auto$MPG, auto$Price, method = 'spearman')
+auto_num <- Filter(is.numeric, auto)
+cor(auto_num)
+require(Hmisc)
+auto_mat <- as.matrix(auto_num)
+rcorr(auto_mat)
+require(corrgram)
+corrgram(auto)
+corrgram(auto, lower.panel = panel.pie, upper.panel = NULL, order = TRUE)
+auto_subset <- auto[, c('Price', 'MPG', 'Rseat', 'Hroom')]
+corrgram(auto_subset, lower.panel = panel.cor, upper.panel = panel.pts)
+require(ggm)
+cor(auto_subset)
+
+Clustering:
+data(iris)
+head(iris)
+iris_numeric <- iris[, 1:4]
+set.seed(123) 
+k <- 3 
+kmeans_result <- kmeans(iris_numeric, centers = k)
+cluster_assignments <- kmeans_result$cluster
+print(cluster_assignments)
+plot(iris_numeric[, c(1, 2)], col = cluster_assignments, main = "K-means Clustering of Iris Data",
+     xlab = "Sepal Length", ylab = "Sepal Width")
+points(kmeans_result$centers[, c(1, 2)], col = 1:k, pch = 8, cex = 2)  # Plot centroids
+legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 8, cex = 1.5) 
+hc <- hclust(dist(iris_numeric), method = "complete")
+plot(hc, main = "Dendrogram of Iris Data", xlab = "Species",
+     sub = NULL, cex = 0.8, hang = -1)
+rect.hclust(hc, k = 3, border = 2)
+
+regression:
+data(mtcars)
+head(mtcars)
+model <- lm(mpg ~ wt, data = mtcars)
+summary(model)
+plot(mtcars$wt, mtcars$mpg, main = "Scatter Plot of MPG vs. Weight",
+     xlab = "Weight (1000 lbs)", ylab = "Miles per Gallon")
+abline(model, col = "blue")
+new_data <- data.frame(wt = c(2.5, 3.0, 3.5))
+predicted_mpg <- predict(model, newdata = new_data)
+print(predicted_mpg)
+
+PCA:
+
+data(iris)
+
+
+head(iris)
+
+
+iris_numeric <- iris[, 1:4]  
+pca_result <- prcomp(iris_numeric, scale. = TRUE) 
+
+
+summary(pca_result)
+
+plot(pca_result, type = "l", main = "Scree Plot - PCA")
+
+
+biplot(pca_result, scale = 0)
